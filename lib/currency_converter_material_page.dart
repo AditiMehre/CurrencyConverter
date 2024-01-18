@@ -1,5 +1,6 @@
 import 'package:currency_converter/dropdown_btn_to.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'animating_bg.dart';
 import 'dropdown_btn_from.dart';
 import 'model_class.dart';
@@ -17,7 +18,7 @@ class CurrencyConverterMaterialPage extends StatefulWidget {
 class _CurrencyConverterMaterialPageState
     extends State<CurrencyConverterMaterialPage> {
   //VARIABLES
-  var border = OutlineInputBorder(
+  var border = const OutlineInputBorder(
     borderSide: BorderSide(
         color: Colors.black,
         width: 2,
@@ -27,32 +28,42 @@ class _CurrencyConverterMaterialPageState
   );
   double result = 0;
   final TextEditingController textEditingController = TextEditingController();
-  String? fromCurrency;
-  String? toCurrency;
-  CurrencyRates? currencyRates;
+  String fromCurrency = "USD";
+  String toCurrency = "INR";
+  late CurrencyRates currencyRates;
+  bool isLoading = false;
 
-// API FETCH
-  Future<void> fetchCurrencyRates() async {
-    final response = await http.get(Uri.parse(
+  // API FETCH
+  Future<CurrencyRates> fetchCurrencyRates() async {
+    setState(() {
+      isLoading = true;
+    });
+    Response response = await http.get(Uri.parse(
         'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_uysT5Q2jBsq328R8fsMhx392ZXpb8se5u6LMSHjf'));
-
+    setState(() {
+      isLoading = false;
+    });
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
       currencyRates = CurrencyRates.fromJson(json.decode(response.body));
-      print("Currency Rates: ${currencyRates?.toJson()}");
-
+      print("Currency Rates: ${response.body}");
       print("200 okay ");
-      print("Currency Rates: $currencyRates");
+      print("Currency Rates: ${currencyRates.toJson()}");
 
-      setState(() {}); // Update the UI after fetching the rates
+      // throw Exception('Failed to load currency rates');
+      return currencyRates;
     } else {
-      print('not ok');
+      print('good good but not ok');
       // If the server did not return a 200 OK response,
       // then throw an exception.
       throw Exception('Failed to load currency rates');
+      // return null;
     }
   }
+
+  //network calls
+  //heavy computation task
 
   // CURRENCY CONVERSION HANDLER
   void convert() {
@@ -291,7 +302,48 @@ class _CurrencyConverterMaterialPageState
   @override
   void initState() {
     super.initState();
-    fetchCurrencyRates();
+    fetch();
+  }
+
+  fetch() async {
+    try {
+      await fetchCurrencyRates();
+      snackbar("Fetched Successfully", success: true);
+    } catch (e) {
+      snackbar("Something went wrong while fetching currency rates.",
+          error: true);
+    } finally {
+      snackbar("Finnaly called");
+    }
+  }
+
+  // void fetch() {
+  //   fetchCurrencyRates().then((value) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text("Currency Rates Fetched Successfully")));
+  //   }).catchError((e, stack) {
+  //     print(e);
+  //     print(stack);
+  //     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+  //         content: Text("Something went wrong while fetching currency rates")));
+  //   }).whenComplete(() {
+  //     ScaffoldMessenger.of(context)
+  //         .showSnackBar(const SnackBar(content: Text("When Complete Called")));
+  //   });
+  // }
+
+  void snackbar(String msg, {bool? success, bool? error}) {
+    Color? backgroundColor;
+    if (success ?? false) {
+      backgroundColor = Colors.green;
+    }
+    if (error ?? false) {
+      backgroundColor = Colors.red;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: backgroundColor,
+    ));
   }
 
   @override
@@ -309,35 +361,41 @@ class _CurrencyConverterMaterialPageState
         ),
       ),
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          AnimatedGradientBackground(),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  buildDropDown(),
-                  buildTextResult(),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  buildTextFieldAmount(border),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  buildConvertButton()
-                ],
-              ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : buildStack(),
+    );
+  }
+
+  Stack buildStack() {
+    return Stack(
+      children: [
+        AnimatedGradientBackground(),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  height: 10,
+                ),
+                buildDropDown(),
+                buildTextResult(),
+                const SizedBox(
+                  height: 16,
+                ),
+                buildTextFieldAmount(border),
+                const SizedBox(
+                  height: 16,
+                ),
+                buildConvertButton()
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -396,7 +454,7 @@ class _CurrencyConverterMaterialPageState
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Text(
+        const Text(
           'From ',
           style: TextStyle(
             fontSize: 20,
@@ -405,25 +463,29 @@ class _CurrencyConverterMaterialPageState
         ),
         // SizedBox(width: 10,),
         DropDownBtnInput(
+          currencyList: currencyRates,
           onChanged: (value) {
             setState(() {
-              fromCurrency = value;
+              fromCurrency = value ?? '';
             });
           },
+          selectedCurrency: fromCurrency,
         ),
-        Text(
+        const Text(
           'To ',
           style: TextStyle(
             fontSize: 20,
             color: Colors.white,
           ),
         ),
-        DropDownBtnOutput(
+        DropDownBtnInput(
+          selectedCurrency: toCurrency,
           onChanged: (value) {
             setState(() {
-              toCurrency = value;
+              toCurrency = value ?? '';
             });
           },
+          currencyList: currencyRates,
         ),
       ],
     );

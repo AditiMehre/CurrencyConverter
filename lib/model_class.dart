@@ -29,14 +29,13 @@ class CurrencyRates {
   double? sek;
   double? sgd;
   double? thb;
-  double? tryCurrency;  // 'try' is a keyword in Dart, so we need to name this differently
+  double?
+      tryCurrency; // 'try' is a keyword in Dart, so we need to name this differently
   double? usd;
   double? zar;
 
   CurrencyRates.fromJson(Map<String, dynamic> json) {
-    var data = json['data'];  // Extract the 'data' key first
-
-
+    var data = json['data']; // Extract the 'data' key first
     aud = (data['AUD'] as num?)?.toDouble();
     bgn = (data['BGN'] as num?)?.toDouble();
     brl = (data['BRL'] as num?)?.toDouble();
@@ -73,7 +72,7 @@ class CurrencyRates {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['AUD'] = this.aud;
     data['BGN'] = this.bgn;
     data['BRL'] = this.brl;
@@ -108,5 +107,14 @@ class CurrencyRates {
     data['USD'] = this.usd;
     data['ZAR'] = this.zar;
     return data;
+  }
+  List<String> getCurrencyCodes() {
+    return [
+      'AUD', 'BGN', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP',
+      'HKD', 'HRK', 'HUF', 'IDR', 'ILS', 'INR', 'ISK', 'JPY', 'KRW', 'MXN',
+      'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RON', 'RUB', 'SEK', 'SGD', 'THB',
+      'TRY', 'USD', 'ZAR'
+      // Add all the currencies you support
+    ];
   }
 }
